@@ -1,9 +1,10 @@
 <template>
-    <td></td>
+    <td @click="$emit('cell-clicked')" :class="color"/>
 </template>
 
 <script>
 export default {
-  name: 'Cell'
+  name: 'Cell',
+  props: ['color']
 }
 </script>

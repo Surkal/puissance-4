@@ -1,30 +1,37 @@
 <template>
   <div id="app">
+    <div class='backGround'>
+      <Background/>
+    </div>
     <Board/>
-    <Timer/>
   </div>
 </template>
 
 <script>
+import Background from'./components/Background.vue'
 import Board from './components/Board.vue'
-import Timer from './components/Timer.vue'
-
 export default {
   name: 'App',
   components: {
     Board,
-    Timer
+    Background
   }
 }
 </script>
 
 <style>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  position:relative;
+}
+.backGround{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100vw;
+  height: 100vh;
+  z-index:1;
+}
+body{
+  overflow: hidden;
 }
 </style>

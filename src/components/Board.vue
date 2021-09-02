@@ -1,52 +1,195 @@
 <template>
   <div class="board">
-    <h1>Puissance 4</h1>
-    
-    <table>
+    <div class="title">
+    <div class="yellowBall"></div>
+    <h1>  Puissance 4  </h1>
+    <div class="redBall"></div>
+    </div>
+    <!-- key:turn to force refresh after each click -->
+    <table :key="turn">
       <tr v-for="row in 6" :key="row">
-        <td 
+        <cell 
           v-for="column in 7"
-          :key="column"
-          v-on:click="playMove(row, column)"
-          v-bind:class="getClassName(row, column)"
+          :key="7*(row-1)+column-1"
+          @cell-clicked="playMove(row,column)"
+          :color="getClassName(row,column)"
         />
       </tr>
     </table>
-    
+    <audio class="audioPlay" preload="auto"> 
+      <source :src="moveSound" type="audio/mpeg">
+    </audio>
+    <audio class="audioWin" preload="auto"> 
+      <source :src="moveSoundWin" type="audio/mpeg">
+    </audio>
+    <div class="timer">
+      <timer v-bind:currentPlayer="currentPlayer" v-bind:isActive="isActive" @time-out="timeIsOut" @new-game-click="resetTimer"/>
+    </div>
+    <div>
+      <score :currentScore="score"/>
+    </div>
+    <buttonaction 
+      @last-play-click="lastPlay" 
+      @new-game-click="newGame" 
+      @active-sound-click="powerSound" 
+      v-bind:activeSound="activeSound"
+    />
   </div>
-  
 </template>
 
 <script>
-//import Cell from './Cell'
+import Cell from './Cell'
+import Timer from './Timer'
+import getNewPawn from '../main'
+import checkWin from '../compute'
+import ButtonActions from './Button'
+import Score from './Score'
 
 const rows = 6;
 const cols = 7;
-
 let boardArray = Array.from({ length: rows }, () => 
-  Array.from({ length: cols }, () => 0)
-);
+        Array.from({ length: cols }, () => 0)
+      );
 
 export default {
   name: 'Board',
   data() {
     return {
       boardArray,
+      activeSound:true,
       turn: 1,
       currentPlayer: 1,
-    }
+      isActive: false,
+      gameOver:false,
+      isDraw: false,
+      score:{1: 0, 2: 0},
+      history: [],
+      lastMove: {row: undefined, col: undefined},
+      moveSound: require('../assets/media/CoinsDrop.mp3'),
+      moveSoundWin: require('../assets/media/sucess.mp3'),
+      backgroundIcons: {1:"fab fa-angellist",2:"fas fa-battery-full",3:"fas fa-beer",4:"fas fa-bomb",5:"fas fa-bolt",6:"fas fa-book-open",7:"fas fa-camera",8:"fas fa-chess-board",9:"fas fa-chess-king",10:"fas fa-cloud",11:"fas fa-code",12:"fas fa-cookie-bite",13:"fas fa-database",14:"fas fa-dice-d20",15:"fas fa-desktop",16:"fab fa-discord",17:"fas fa-envelope",18:"fab fa-ethereum",19:"fas fa-file-code"},
+      }
   },
-  //components: {
-    //'cell': Cell
-  //},
+  components: {
+    'cell': Cell,
+    'timer': Timer,
+    'score': Score,
+    'buttonaction':ButtonActions
+  },
   methods: {
     playMove(row, col) {
+      // détermine la rangée sur laquelle se placera le jeton
+      row = getNewPawn(this.boardArray, --col);      
+      
+
+      // full column, can't play
+      if (row === -1) return;
+      if (this.gameOver) return;
+
       // change la couleur de la cellule sur laquelle on clique
-      this.boardArray[--row][--col] = this.currentPlayer;
+      this.boardArray[row][col] = this.currentPlayer;
+      
+      this.lastMove = {row, col};
+      this.history.push({player: this.currentPlayer, row, col});
+
+      // play sound
+      let audio = document.querySelector('.audioPlay')
+      let audioVictory = document.querySelector(".audioWin");
+      if (!this.activeSound) {
+        audio.volume=0;
+        audioVictory.volume=0;
+      }
+      else
+      {
+        audio.volume=1;
+        audioVictory.volume=0.06;
+      }
+      audio.play()
+      
+      this.turn++;
+      
+      if(this.turn>=3){
+        this.isActive=true;
+      }
+      
+      //check victory
+      const position = [col, row];
+      this.gameOver = checkWin(this.boardArray, position, this.currentPlayer)
+      if (this.gameOver) {
+        this.score[this.currentPlayer]++; 
+        audioVictory.play();
+
+        // Arrête le timer
+        this.isActive = false;
+      }
+      
+      // toggle player
+      this.togglePlayer();
+    },
+    generateBoard(turn) {
+      let board = this.initBoard();
+      for (let i = 0; i < turn-1; i++) {
+        const state = this.history[i];
+        board[state['row']][state['col']] = state['player'];
+      }
+      this.history = this.history.slice(0, turn-1);
+      return board
+    },
+    initBoard() {
+      const rows = 6;
+      const cols = 7;
+      return Array.from({ length: rows }, () => 
+        Array.from({ length: cols }, () => 0)
+      );
     },
     getClassName(row, col) {
-      console.log(this.boardArray[--row][--col]);
-      //return "yellowBall";
+      const colorCode = [null, 'yellowBall', 'redBall'];
+      let color = this.boardArray[--row][--col];
+      color = colorCode[color];
+      
+      // On ajoute une animation au dernier coup joué
+      if (this.lastMove.row === row && this.lastMove.col === col) {
+        color += ' lastMove';
+      }
+      return color;
+    },
+    lastPlay(){
+      if (this.gameOver) return;
+      if (this.turn<2) return;
+      
+      this.turn--;
+      this.boardArray = this.generateBoard(this.turn);
+      this.togglePlayer();
+    },
+    
+    newGame(pause=false) {
+      this.turn = 1;
+      this.currentPlayer = 1;
+      this.isActive = false;
+      this.gameOver = false;
+      this.isDraw = false;
+      if (!pause) {
+        this.boardArray = this.initBoard();
+      }
+      this.history = [];
+      this.lastMove = {row: undefined, col: undefined};
+      
+    }, 
+    togglePlayer() {
+      if (this.currentPlayer==1) {
+        this.currentPlayer=2;
+      } else {
+        this.currentPlayer=1;
+      }
+    },
+    powerSound() {
+      this.activeSound = !this.activeSound;
+    },
+    timeIsOut() {
+      if (this.gameOver) return;
+      this.gameOver = true;
+      this.score[~this.currentPlayer+4]++;
+      this.newGame(true);
     }
   }
 }
@@ -54,33 +197,40 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+
   body {
     text-align: center;
     margin:0 auto;
-    background: linear-gradient(black, white, black);
+    font-family : 'Allison', cursif;
 }
-
-
 h1 {
     text-shadow: 0.1em 0.1em 0.2em black;
-    color:white;
-    margin-top: 9px;
+    color:goldenrod;
+    margin: 10px;
+    font-family : 'Allison', cursif;
+    font-size: 3em;
 }
 h3 {
-    font-size: 1.5em;
-    font-weight: bold;
-    float:right;
-    padding-right: 165px;
-    padding-top: 75px;
-    color:white;
-    text-shadow: 0.1em 0.1em 0.2em black;
+    font-size:1.2em;
+    color: goldenrod;
+    animation: lumiere2 2s infinite linear;
+    font-family : 'Allison', cursif;
+    margin: 10px;
 }
-
-
-button {
-    padding:1em;
+.actions {
+  display: flex;
+  justify-content: center;
 }
-
+.button {
+    font-size:3em;
+    font-weight:bold;
+    color: goldenrod;
+    animation: lumiere 2s infinite linear;
+    margin-left: 2em;
+    margin-right: 2em;
+    cursor:pointer;
+    margin-top: 5px;
+}
 h3::after {
     font-family: "Font Awesome 5 Free"; 
     font-weight: 900; 
@@ -91,15 +241,33 @@ h3::before {
     font-weight: 900; 
     content: "\f2f2";
   }
+.score h3::after {
+    font-family: "Font Awesome 5 Free"; 
+    font-weight: 900; 
+    content: "\f091";
+  }
+.score h3::before {
+    font-family: "Font Awesome 5 Free"; 
+    font-weight: 900; 
+    content: "\f091";
+  }
 .board {
+  margin:auto;
+  position:absolute;
+  top:0px;
+  left:0;
+  right: 0px;
+  bottom: 0px;
+  z-index:1;
+}
+table {
     margin: auto;
     width: 430px;
     border: 2px blue outset;
     background-color: blue;
     border-radius: 15px;
-    background: linear-gradient(blue, lightblue, blue);
+    background: linear-gradient(blue, darkblue);
 }
-
 .board td {
     width: 55px;
     height: 55px;
@@ -109,38 +277,21 @@ h3::before {
     border-radius: 55px;
     background-color: lightgrey;
 }
-
-
-.actions {
-    text-shadow: 0.1em 0.1em 0.2em black;
-    color:white;
-}
-
-.scores {
-    margin:100px;
-    text-shadow: 0.1em 0.1em 0.2em black;
-    float:left;
-    color:white;
-    border:1px solid black;
-    width:250px;
-    text-align: center;
-}
-.scores td{
-    border:1px solid black;
-    border-radius:5px;
-}
-.scores th{
-
-    text-align: center;
-    
-}
-
 .redBall {
     height: 59px;
     width: 59px;
     border-radius: 50%;
     margin: 0;
     background: radial-gradient(circle at 10px 10px, #f91e00, #000);
+}
+.redBall2 {
+    height: 55px;
+    width: 55px;
+    border-radius: 50%;
+    margin: 0;
+    background: radial-gradient(circle at 10px 10px, #f91e00, #000);
+    margin-left: 57px;
+    margin-top: 10px;
 }
 .yellowBall {
     height: 59px;
@@ -149,14 +300,117 @@ h3::before {
     margin: 0;
     background: radial-gradient(circle at 10px 10px, #fffb02, #000);
 }
-
-.playerico::before {
-    font-family: "Font Awesome 5 Free"; 
-    font-weight: 900; 
-    content: "\f007";
+.yellowBall2 {
+    height: 55px;
+    width: 55px;
+    border-radius: 50%;
+    margin: 0;
+    background: radial-gradient(circle at 10px 10px, #fffb02, #000);
+    margin-top: 10px;
 }
 .title {
     display:flex;
-    padding-left: 542px;
+    text-align:center;
+    margin:auto;
+    justify-content: center;
+    margin-bottom: 15px;
+    margin-top: 15px;
+}
+.topleft {
+  color:white;
+  font-size: 2em;
+  display:flex;
+  margin-bottom: 25px;
+  flex-direction: column;
+}
+#player1 {
+  margin-bottom: 5px;
+  font-size: 1em;
+  margin-left: 10px;
+  color:white;
+  font-weight: bold;
+
+}
+#player2 {
+  font-size: 1em;
+  margin-left: 10px;
+  color: white;
+  font-weight: bold;
+}
+.title {
+  display:flex;
+  margin-bottom: 16px;
+
+}
+.flex {
+  display:flex;
+  margin:auto;
+}
+.lastMove {
+  animation:grow 1s;
+}
+@keyframes grow {
+ 0% {
+  transform: scale( 0 );
+  -moz-transform: scale( 0 );
+  -o-transform: scale( 0 );
+  -ms-transform: scale( 0 );
+  transform: scale( 0 );
+  }
+  100% {
+  transform: scale( 1 );
+  -moz-transform: scale( 1 );
+  -o-transform: scale( 1 );
+  -ms-transform: scale( 1 );
+  transform: scale( 1 );
+  }
+}
+@keyframes lumiere {
+  0%{
+  text-shadow:
+  0 0 7px rgb(0,0,255),
+  0 0 10px rgb(0,0,255),
+  0 0 32px rgb(0,0,255),
+  0 0 87px rgb(0,0,255),
+  0 0 150px rgb(0,0,255);
+  }
+  50%{
+  text-shadow:
+  0 0 7px rgb(0,0,255),
+  0 0 10px rgb(0,0,255),
+  0 0 32px rgb(0,0,255),
+  0 0 87px rgb(0,0,255),
+  0 0 150px rgb(0,0,255);
+  }
+}
+
+@keyframes lumiere2 {
+  0%{
+  text-shadow:
+  0 0 7px rgb(252, 1, 1),
+  0 0 10px rgb(252, 1, 1),
+  0 0 32px rgb(252, 1, 1),
+  0 0 87px rgb(252, 1, 1),
+  0 0 150px rgb(252, 1, 1);
+  }
+  50%{
+  text-shadow:
+  0 0 7px rgba(252, 1, 1, 0.878),
+  0 0 10px rgba(252, 1, 1, 0.878),
+  0 0 32px rgba(252, 1, 1, 0.878),
+  0 0 87px rgba(252, 1, 1, 0.878),
+  0 0 150px rgba(252, 1, 1, 0.878);
+  }
+}
+
+.fa-volume-up {
+    font-size: 1em;
+} 
+.score {
+  font-size: 2em;
 }
 </style>
+
+
+
+
