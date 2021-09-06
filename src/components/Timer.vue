@@ -2,10 +2,16 @@
     <div class="topleft">
       <h3> Temps Restant </h3>
       <div class="flex">
+        
+        <div id="player1">
         <div class="yellowBall2"></div>
-        <div id="player1">Player 1 : <div class="beRed">{{ seconds['1'] }} sec</div></div>
+          Player 1 : <span :class="getClassName(seconds[1])">{{ seconds[1] | toMinutes}}:{{ seconds[1] | toSeconds}}</span>
+        </div>
+        
+        <div id="player2">
         <div class="redBall2"></div>
-        <div id="player2">Player 2 : <div class="beRed">{{ seconds['2'] }} sec</div></div>
+          Player 2 : <span :class="getClassName(seconds[1])">{{ seconds[2] | toMinutes}}:{{ seconds[2] | toSeconds}}</span>
+        </div>
       </div>
     </div>
 </template>
@@ -13,19 +19,19 @@
 <script>
 export default {
   name: 'Timer',
-  props: ["currentPlayer", "isActive"],
+  props: ["currentPlayer", "isActive", "resetTimer"],
   data() {
     return {
-      seconds: {1: 10, 2: 10}
+      seconds: {1: 90, 2: 90}
       
     }
-  },
-  mounted() {
-    this.handleTime();
   },
   watch: {
     isActive: function() {
       this.handleTime();
+    },
+    resetTimer: function() {
+      this.resetCountdown();
     }
   },
   methods: {
@@ -35,36 +41,42 @@ export default {
         interval = setInterval(() => {
           if (!this.seconds[this.currentPlayer]) {
             this.$emit('time-out');
+            return () => clearInterval(interval);
           }
-          if (!this.isActive || !this.seconds[this.currentPlayer]) {
+          if (!this.isActive) {
             return () => clearInterval(interval);
           }
           this.seconds[this.currentPlayer]--;
-          console.log(this.seconds);
         }, 1000);
       }
       return () => clearInterval(interval);
     },
-    toMinutes(secondes){
-      let fdsfsdfds = Math.floor(secondes/60)/10
-      return fdsfsdfds.toFixed(2)
+    resetCountdown() {
+      if (!this.resetTimer) return;
+      this.seconds = {1: 90, 2: 90};
     },
-    toSecondes(secondes){
-      if(secondes>60)
-      {
-        let nb = Math.floor(secondes/60)
-        let result = secondes-(nb*60)
-        return result
-      }
-      else
-      {
-        return secondes
-      }
-    },
-    resetTimer() {
-      console.log('timer resetté');
-      this.seconds = {1: 10, 2: 10};
+    getClassName(seconds) {
+      if (seconds <= 10) {
+        return 'timeRunningOut';
+      } 
+      return null;
     }
+  },
+  filters: {
+    toMinutes(secondes){
+      let minutes = Math.floor(secondes/60);
+      if (minutes < 10) {
+        return '0' + minutes;
+      }
+      return minutes;
+    },
+    toSeconds(secondes){
+      secondes %= 60;
+      if (secondes < 10) {
+        return '0' + secondes;
+      }
+      return secondes;
+    },
   }
 }
 </script>

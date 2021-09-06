@@ -23,7 +23,12 @@
       <source :src="moveSoundWin" type="audio/mpeg">
     </audio>
     <div class="timer">
-      <timer v-bind:currentPlayer="currentPlayer" v-bind:isActive="isActive" @time-out="timeIsOut" @new-game-click="resetTimer"/>
+      <timer
+        v-bind:currentPlayer="currentPlayer"
+        v-bind:isActive="isActive"
+        @time-out="timeIsOut"
+        v-bind:resetTimer="resetTimer"
+      />
     </div>
     <div>
       <score :currentScore="score"/>
@@ -68,13 +73,14 @@ export default {
       moveSound: require('../assets/media/CoinsDrop.mp3'),
       moveSoundWin: require('../assets/media/sucess.mp3'),
       backgroundIcons: {1:"fab fa-angellist",2:"fas fa-battery-full",3:"fas fa-beer",4:"fas fa-bomb",5:"fas fa-bolt",6:"fas fa-book-open",7:"fas fa-camera",8:"fas fa-chess-board",9:"fas fa-chess-king",10:"fas fa-cloud",11:"fas fa-code",12:"fas fa-cookie-bite",13:"fas fa-database",14:"fas fa-dice-d20",15:"fas fa-desktop",16:"fab fa-discord",17:"fas fa-envelope",18:"fab fa-ethereum",19:"fas fa-file-code"},
-      }
+      resetTimer: false
+    }
   },
   components: {
     'cell': Cell,
     'timer': Timer,
     'score': Score,
-    'buttonaction':ButtonActions
+    'buttonaction': ButtonActions
   },
   methods: {
     playMove(row, col) {
@@ -85,6 +91,8 @@ export default {
       // full column, can't play
       if (row === -1) return;
       if (this.gameOver) return;
+
+      this.resetTimer = false;
 
       // change la couleur de la cellule sur laquelle on clique
       this.boardArray[row][col] = this.currentPlayer;
@@ -115,8 +123,9 @@ export default {
       //check victory
       const position = [col, row];
       this.gameOver = checkWin(this.boardArray, position, this.currentPlayer)
+
       if (this.gameOver) {
-        this.score[this.currentPlayer]++; 
+        this.score[this.currentPlayer]++;
         audioVictory.play();
 
         // Arrête le timer
@@ -126,6 +135,7 @@ export default {
       // toggle player
       this.togglePlayer();
     },
+    
     generateBoard(turn) {
       let board = this.initBoard();
       for (let i = 0; i < turn-1; i++) {
@@ -135,6 +145,7 @@ export default {
       this.history = this.history.slice(0, turn-1);
       return board
     },
+
     initBoard() {
       const rows = 6;
       const cols = 7;
@@ -142,6 +153,7 @@ export default {
         Array.from({ length: cols }, () => 0)
       );
     },
+
     getClassName(row, col) {
       const colorCode = [null, 'yellowBall', 'redBall'];
       let color = this.boardArray[--row][--col];
@@ -153,11 +165,13 @@ export default {
       }
       return color;
     },
+
     lastPlay(){
       if (this.gameOver) return;
       if (this.turn<2) return;
       
       this.turn--;
+      this.lastMove = {row: undefined, col: undefined};
       this.boardArray = this.generateBoard(this.turn);
       this.togglePlayer();
     },
@@ -173,8 +187,9 @@ export default {
       }
       this.history = [];
       this.lastMove = {row: undefined, col: undefined};
-      
-    }, 
+      this.resetTimer = true;
+    },
+
     togglePlayer() {
       if (this.currentPlayer==1) {
         this.currentPlayer=2;
@@ -182,14 +197,17 @@ export default {
         this.currentPlayer=1;
       }
     },
+
     powerSound() {
+      // Active ou désactive le son
       this.activeSound = !this.activeSound;
     },
+
     timeIsOut() {
       if (this.gameOver) return;
       this.gameOver = true;
+      this.isActive = false;
       this.score[~this.currentPlayer+4]++;
-      this.newGame(true);
     }
   }
 }
@@ -215,11 +233,12 @@ h3 {
     color: goldenrod;
     animation: lumiere2 2s infinite linear;
     font-family : 'Allison', cursif;
-    margin: 10px;
+
 }
 .actions {
   display: flex;
   justify-content: center;
+  margin-top: 2em;
 }
 .button {
     font-size:3em;
@@ -254,7 +273,7 @@ h3::before {
 .board {
   margin:auto;
   position:absolute;
-  top:0px;
+  top:200px;
   left:0;
   right: 0px;
   bottom: 0px;
@@ -278,6 +297,7 @@ table {
     background-color: lightgrey;
 }
 .redBall {
+    
     height: 59px;
     width: 59px;
     border-radius: 50%;
@@ -285,15 +305,16 @@ table {
     background: radial-gradient(circle at 10px 10px, #f91e00, #000);
 }
 .redBall2 {
-    height: 55px;
-    width: 55px;
+    
+    height: 30px;
+    width: 30px;
     border-radius: 50%;
     margin: 0;
     background: radial-gradient(circle at 10px 10px, #f91e00, #000);
-    margin-left: 57px;
-    margin-top: 10px;
+
 }
 .yellowBall {
+    
     height: 59px;
     width: 59px;
     border-radius: 50%;
@@ -301,12 +322,13 @@ table {
     background: radial-gradient(circle at 10px 10px, #fffb02, #000);
 }
 .yellowBall2 {
-    height: 55px;
-    width: 55px;
+    
+    height: 30px;
+    width: 30px;
     border-radius: 50%;
     margin: 0;
     background: radial-gradient(circle at 10px 10px, #fffb02, #000);
-    margin-top: 10px;
+
 }
 .title {
     display:flex;
@@ -319,23 +341,24 @@ table {
 .topleft {
   color:white;
   font-size: 2em;
-  display:flex;
-  margin-bottom: 25px;
-  flex-direction: column;
+  position: absolute;
+  top: 220px;
+  left: 400px;
 }
 #player1 {
   margin-bottom: 5px;
   font-size: 1em;
-  margin-left: 10px;
   color:white;
   font-weight: bold;
-
+  display:flex;
+  justify-content: space-evenly;
 }
 #player2 {
   font-size: 1em;
-  margin-left: 10px;
   color: white;
   font-weight: bold;
+  display:flex;
+  justify-content: space-evenly;
 }
 .title {
   display:flex;
@@ -344,6 +367,7 @@ table {
 }
 .flex {
   display:flex;
+  flex-direction: column;
   margin:auto;
 }
 .lastMove {
@@ -408,6 +432,9 @@ table {
 } 
 .score {
   font-size: 2em;
+  position: absolute;
+  top: 200px;
+  right: 400px;
 }
 </style>
 

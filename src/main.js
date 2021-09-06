@@ -22,7 +22,7 @@ export default function getNewPawn(board, column) {
     }
     return 5;
 }
-/*w
+/*
 // colonnes jouables
 function getPlayableColumns(boardArray) {
   // chaque index de boardArray[0] égal à 0
