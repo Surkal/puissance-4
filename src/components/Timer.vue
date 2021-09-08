@@ -5,12 +5,12 @@
         
         <div id="player1">
         <div class="yellowBall2"></div>
-          Player 1 : <span :class="getClassName(seconds[1])">{{ seconds[1] | toMinutes}}:{{ seconds[1] | toSeconds}}</span>
+        Player 1 : <span :class="getClassName(seconds[1])">{{ seconds[1] | toMinutes}}:{{ seconds[1] | toSeconds}}</span>
         </div>
         
         <div id="player2">
         <div class="redBall2"></div>
-          Player 2 : <span :class="getClassName(seconds[1])">{{ seconds[2] | toMinutes}}:{{ seconds[2] | toSeconds}}</span>
+        Player 2 : <span :class="getClassName(seconds[1])">{{ seconds[2] | toMinutes}}:{{ seconds[2] | toSeconds}}</span>
         </div>
       </div>
     </div>
@@ -28,14 +28,18 @@ export default {
   },
   watch: {
     isActive: function() {
-      this.handleTime();
+      if (this.isActive) {
+        this.handleTime();
+      }
     },
     resetTimer: function() {
       this.resetCountdown();
+
     }
   },
   methods: {
     handleTime() {
+
       let interval = null;
       if (this.isActive) {
         interval = setInterval(() => {

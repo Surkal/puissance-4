@@ -27,7 +27,7 @@ p {
     color: yellow;
 }
 .yellowplayer {
-    margin-bottom:0;
+    margin-bottom:10px;
 
 }
 .redplayer {

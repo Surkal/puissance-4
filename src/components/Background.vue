@@ -45,7 +45,6 @@ section{
     overflow: hidden;
     margin:auto;
     max-width:100%;
-        
 }
 section .row{
     position: relative;

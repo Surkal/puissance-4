@@ -1,11 +1,8 @@
 <template>
   <div class="board">
-    <div class="title">
-    <div class="yellowBall"></div>
-    <h1>  Puissance 4  </h1>
-    <div class="redBall"></div>
-    </div>
+    <h1><div class="yellowBall"></div>  Puissance 4  <div class="redBall"></div></h1>
     <!-- key:turn to force refresh after each click -->
+    
     <table :key="turn">
       <tr v-for="row in 6" :key="row">
         <cell 
@@ -16,6 +13,7 @@
         />
       </tr>
     </table>
+    
     <audio class="audioPlay" preload="auto"> 
       <source :src="moveSound" type="audio/mpeg">
     </audio>
@@ -39,6 +37,7 @@
       @active-sound-click="powerSound" 
       v-bind:activeSound="activeSound"
     />
+    <checkresult v-if="classWin"/>
   </div>
 </template>
 
@@ -49,6 +48,7 @@ import getNewPawn from '../main'
 import checkWin from '../compute'
 import ButtonActions from './Button'
 import Score from './Score'
+import CheckResult from './CheckResult'
 
 const rows = 6;
 const cols = 7;
@@ -73,14 +73,16 @@ export default {
       moveSound: require('../assets/media/CoinsDrop.mp3'),
       moveSoundWin: require('../assets/media/sucess.mp3'),
       backgroundIcons: {1:"fab fa-angellist",2:"fas fa-battery-full",3:"fas fa-beer",4:"fas fa-bomb",5:"fas fa-bolt",6:"fas fa-book-open",7:"fas fa-camera",8:"fas fa-chess-board",9:"fas fa-chess-king",10:"fas fa-cloud",11:"fas fa-code",12:"fas fa-cookie-bite",13:"fas fa-database",14:"fas fa-dice-d20",15:"fas fa-desktop",16:"fab fa-discord",17:"fas fa-envelope",18:"fab fa-ethereum",19:"fas fa-file-code"},
-      resetTimer: false
+      resetTimer: false,
+      classWin: false ,
     }
   },
   components: {
     'cell': Cell,
     'timer': Timer,
     'score': Score,
-    'buttonaction': ButtonActions
+    'buttonaction': ButtonActions,
+    'checkresult': CheckResult,
   },
   methods: {
     playMove(row, col) {
@@ -91,6 +93,7 @@ export default {
       // full column, can't play
       if (row === -1) return;
       if (this.gameOver) return;
+      this.classWin = false;
 
       this.resetTimer = false;
 
@@ -123,17 +126,17 @@ export default {
       //check victory
       const position = [col, row];
       this.gameOver = checkWin(this.boardArray, position, this.currentPlayer)
-
       if (this.gameOver) {
         this.score[this.currentPlayer]++;
         audioVictory.play();
-
+        this.classWin = true;
         // Arrête le timer
         this.isActive = false;
       }
       
       // toggle player
       this.togglePlayer();
+
     },
     
     generateBoard(turn) {
@@ -182,6 +185,7 @@ export default {
       this.isActive = false;
       this.gameOver = false;
       this.isDraw = false;
+      this.classWin = false;
       if (!pause) {
         this.boardArray = this.initBoard();
       }
@@ -224,29 +228,36 @@ export default {
 h1 {
     text-shadow: 0.1em 0.1em 0.2em black;
     color:goldenrod;
-    margin: 10px;
+    margin: auto;
     font-family : 'Allison', cursif;
-    font-size: 3em;
+    font-size: 8em;
+    animation: lumiere 2s infinite linear;
+    display:flex;
+    justify-content: center;
+    margin-bottom: 35px;
+    
 }
 h3 {
-    font-size:1.2em;
+    font-size:2em;
     color: goldenrod;
     animation: lumiere2 2s infinite linear;
     font-family : 'Allison', cursif;
+    margin: 0;
 
 }
 .actions {
+  font-size: 1.5em;
   display: flex;
   justify-content: center;
-  margin-top: 2em;
+  margin-top: 3em;
 }
 .button {
-    font-size:3em;
+    font-size:4em;
     font-weight:bold;
     color: goldenrod;
     animation: lumiere 2s infinite linear;
-    margin-left: 2em;
-    margin-right: 2em;
+    margin-left: 1em;
+    margin-right: 1em;
     cursor:pointer;
     margin-top: 5px;
 }
@@ -282,10 +293,10 @@ h3::before {
 table {
     margin: auto;
     width: 430px;
-    border: 2px blue outset;
     background-color: blue;
     border-radius: 15px;
     background: linear-gradient(blue, darkblue);
+    margin-top: 30px;
 }
 .board td {
     width: 55px;
@@ -297,73 +308,66 @@ table {
     background-color: lightgrey;
 }
 .redBall {
-    
-    height: 59px;
-    width: 59px;
+    margin-left: 20px;
+    margin-top: 45px;
+    height: 80px;
+    width: 80px;
     border-radius: 50%;
-    margin: 0;
     background: radial-gradient(circle at 10px 10px, #f91e00, #000);
 }
 .redBall2 {
-    
-    height: 30px;
-    width: 30px;
+    margin-right: 10px;
+    height: 50px;
+    width: 50px;
     border-radius: 50%;
-    margin: 0;
+    margin-top: 25px;
     background: radial-gradient(circle at 10px 10px, #f91e00, #000);
 
 }
 .yellowBall {
-    
-    height: 59px;
-    width: 59px;
+    margin-right: 20px;
+    height: 80px;
+    width: 80px;
     border-radius: 50%;
-    margin: 0;
+    margin-top: 45px;
     background: radial-gradient(circle at 10px 10px, #fffb02, #000);
 }
 .yellowBall2 {
-    
-    height: 30px;
-    width: 30px;
+    margin-right: 10px;
+    height: 50px;
+    width: 50px;
     border-radius: 50%;
-    margin: 0;
+    margin-top: 25px;
     background: radial-gradient(circle at 10px 10px, #fffb02, #000);
-
 }
 .title {
-    display:flex;
-    text-align:center;
     margin:auto;
-    justify-content: center;
-    margin-bottom: 15px;
-    margin-top: 15px;
 }
 .topleft {
   color:white;
   font-size: 2em;
   position: absolute;
   top: 220px;
-  left: 400px;
+  left: 200px;
+  margin-top: 1.5em;
 }
 #player1 {
+  margin-bottom:10px;
+  font-size: 2.5em;
   margin-bottom: 5px;
-  font-size: 1em;
   color:white;
-  font-weight: bold;
   display:flex;
   justify-content: space-evenly;
 }
 #player2 {
-  font-size: 1em;
+  font-size: 2.5em;
   color: white;
-  font-weight: bold;
   display:flex;
   justify-content: space-evenly;
 }
 .title {
   display:flex;
-  margin-bottom: 16px;
-
+  margin-bottom: 50px;
 }
 .flex {
   display:flex;
@@ -408,6 +412,8 @@ table {
   }
 }
 
+
+
 @keyframes lumiere2 {
   0%{
   text-shadow:
@@ -427,15 +433,26 @@ table {
   }
 }
 
+
 .fa-volume-up {
     font-size: 1em;
 } 
 .score {
-  font-size: 2em;
+  font-size: 2.5em;
   position: absolute;
-  top: 200px;
-  right: 400px;
+  top: 220px;
+  right: 300px;
+  margin-top: 1.5em;
 }
+.fa-volume-up:before {
+    content: "\f028";
+    font-size: 45px;
+}
+.fa-volume-mute:before {
+    font-size: 45px;
+}
+
+
 </style>
 
 
